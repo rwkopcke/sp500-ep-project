@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "sp500-ep-project"
+version = "0.1.0"
+description = "Compare SP earnings-price ratio to 10-year TIPS rate"
+authors = ["RW Kopcke <rwkopckel@yahoo.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+polars = "^1.17.0"
+openpyxl = "^3.1.5"
+matplotlib = "^3.9.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
