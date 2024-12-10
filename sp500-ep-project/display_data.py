@@ -14,9 +14,8 @@ import json
 import matplotlib.pyplot as plt
 
 import paths as sp
-import helper_functions.display_helper_func as dh
-import helper_functions.plot_func as pf
-# import sp500_pe.src.helper_functions.helper_func as hp
+import func_module.display_helper_func as dh
+import func_module.plot_func as pf
 
 
 #=================  Global Parameters  ================================

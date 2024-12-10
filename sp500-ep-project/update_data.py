@@ -24,8 +24,8 @@ import json
 from openpyxl import load_workbook
 
 import paths as sp
-import helper_functions.helper_func as hp
-import helper_functions.read_data_func as rd
+import func_module.helper_func as hp
+import func_module.read_data_func as rd
 
 #######################  Parameters  ##################################
 

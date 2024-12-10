@@ -13,7 +13,7 @@ import openpyxl.utils.cell
 import polars as pl
 import polars.selectors as cs
 
-import helper_functions.helper_func as hp
+import func_module.helper_func as hp
 
 def read_sp_date(wksht,
                  date_keys, value_col_1, 

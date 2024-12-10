@@ -4,7 +4,7 @@ import sys
 
 import polars as pl
 
-import helper_functions.helper_func as hp
+import func_module.helper_func as hp
 
 
 def contemp_12m_fwd_proj(df, p_dict, eps, name_proj):
