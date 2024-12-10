@@ -31,7 +31,7 @@ import helper_functions.read_data_func as rd
 
 # FOR DEBUGGING -- run program, with the value True
 # True allows inspection of dfs & aborts writing new files
-HALT_PROCESS = False
+HALT_PROCESS = True
 
 # data from "ESTIMATES&PEs" wksht
 RR_COL_NAME = 'real_int_rate'
@@ -170,10 +170,9 @@ def update_data_files():
 # and add them to 'prev_files'
     prev_files_set = set(record_dict['prev_files'])
     
-    dir_path = sp.INPUT_DIR
     new_files_set = \
-        set(str(f.name) for f in dir_path.glob('sp-500-eps*.xlsx'))
-    # [f for f in path.glob("*.[jpeg jpg png]*")]
+        set(str(f.name) 
+            for f in sp.INPUT_DIR.glob('sp-500-eps*.xlsx'))
     
     new_files_set = new_files_set - prev_files_set
     
@@ -186,13 +185,11 @@ def update_data_files():
         sys.exit()
         
 # there is new data, add new files to historical record
-    record_dict['prev_files'].extend(
-        list(new_files_set)
-    )
-    # most recent appear first
-    record_dict['prev_files'].sort(reverse= True)
+    record_dict['prev_files'] \
+        .extend(list(new_files_set)) \
+        .sort(reverse= True)
 
-# find the latest new file for each quarter
+# find the latest new file for each quarter (agg(sort).last)
     data_df = pl.DataFrame(list(new_files_set), 
                           schema= ["new_files"],
                           orient= 'row')\
@@ -287,14 +284,16 @@ def update_data_files():
     # https://www.codemag.com/Article/2212051/Using-the-Polars-DataFrame-Library
     # pl.show_versions()
 
-# files with new data: files_to_read_list
+# files with new data: files_to_read_list, which is
+# also used below in update projection files section
     files_to_read_list = \
-        pl.Series(used_df.select('new_files'))\
-            .to_list()
+        pl.Series(used_df.select('new_files')).to_list()
+            
     # add dates of projections and year_qtr to record_dict
-    record_dict['prev_used_files'].extend(
-        files_to_read_list)
-    record_dict['prev_used_files'].sort(reverse= True)
+    record_dict['prev_used_files'] \
+        .extend(files_to_read_list) \
+        .sort(reverse= True)
+        
     record_dict['proj_yr_qtrs']= \
         hp.date_to_year_qtr(
                 hp.string_to_date(record_dict['prev_used_files'])
@@ -311,7 +310,7 @@ def update_data_files():
     print(f'in directory: \n{sp.INPUT_DIR}')
     print('================================================\n')
     
-## load real interest rates, eoq, from FRED DFII10
+## REAL INTEREST RATES, eoq, from FRED DFII10
     active_workbook = load_workbook(filename= sp.INPUT_RR_ADDR,
                                     read_only= True,
                                     data_only= True)
@@ -319,7 +318,7 @@ def update_data_files():
     real_rt_df = rd.fred_reader(active_sheet,
                                 **SHT_FRED_PARAMS)
     
-## load address of the most recent file with historical data
+## HISTORICAL DATA from existing .parquet file
     latest_file_addr = sp.INPUT_DIR / record_dict["latest_used_file"]
     
     # load s&p workbook, contains the most recent update to hist data
@@ -333,9 +332,17 @@ def update_data_files():
                                            **SHT_EST_DATE_PARAMS,
                                            include_prices= True)
     
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# actual df should have only prices for recent quarters w/o historical data
+# if len actual_df is zero, stop
+# otherwise, update historical_df prices for those quarters?
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    
     # load historical data, if updates are available
     df = rd.sp_loader(active_sheet,
-                        **SHT_HIST_PARAMS)
+                      **SHT_HIST_PARAMS)
     
     # if any date is None, halt
     if (name_date is None or
@@ -349,12 +356,20 @@ def update_data_files():
         print('============================================\n')
         sys.exit()
         
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# actual_df (YR_QTR_NAME) - existing historical_df(YR_QTR_NAME) parquet
+# -> new quarters to be added to existing historical_df
+# if nil, skip -> read the new projections
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        
     actual_df = pl.concat([actual_df, df], how= "diagonal")\
                   .with_columns(pl.col('date')
                         .map_batches(hp.date_to_year_qtr)
                         .alias(YR_QTR_NAME))
                   
-# merge real_rates with p and e history
+    # merge real_rates with p and e history
     actual_df = actual_df.join( 
             real_rt_df, 
             how="left", 
@@ -365,7 +380,7 @@ def update_data_files():
     del df
     gc.collect()
         
-# fetch margins
+## MARGINS
     margins_df = rd.margin_loader(active_sheet,
                                   **SHT_BC_MARG_PARAMS)
     
@@ -379,7 +394,7 @@ def update_data_files():
     gc.collect()
 
     '''
-# industrial data
+## INDUSTRIAL DATA
     ind_df = rd.industry_loader(active_sheet,
                                 **SHT_BC_IND_PARAMS)
     
@@ -394,7 +409,7 @@ def update_data_files():
     gc.collect()
     '''
         
-# qtrly_data
+## QUARTERLY DATA
     active_sheet = active_workbook[SHT_QTR_NAME]
 
     qtrly_df = rd.sp_loader(active_sheet, 
@@ -454,7 +469,10 @@ def update_data_files():
         
 ############
         if HALT_PROCESS:
-            print('\nNo data files have been written yet')
+            print('\n============================================')
+            print('HALT_PROCESS is True:')
+            print('No data files have been written. End process.')
+            print('============================================\n')
             sys.exit()
 ############
 
