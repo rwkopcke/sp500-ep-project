@@ -326,6 +326,14 @@ def update_data_files():
                                     read_only= True,
                                     data_only= True)
     
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # actual df from parquet file
+    # fetch date and new data from new excel file
+    # concat new with old
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    
     # most recent date and prices
     active_sheet = active_workbook[SHT_EST_NAME]
     name_date, actual_df = rd.read_sp_date(active_sheet, 
@@ -393,6 +401,8 @@ def update_data_files():
     del margins_df
     gc.collect()
 
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     '''
 ## INDUSTRIAL DATA
     ind_df = rd.industry_loader(active_sheet,
@@ -408,6 +418,8 @@ def update_data_files():
     del ind_df
     gc.collect()
     '''
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         
 ## QUARTERLY DATA
     active_sheet = active_workbook[SHT_QTR_NAME]
