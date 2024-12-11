@@ -97,8 +97,9 @@ def data_block_reader(wksht, start_row, stop_row,
     
 
 def sp_loader(wksht,
-                act_key, first_col, last_col,
-                skip_col, column_names):
+              num_rows_to_read,
+              act_key, first_col, last_col,
+              skip_col, column_names):
     '''
         read data from s&p excel workbook sheet
         that contains history for prices and earnings
@@ -112,12 +113,12 @@ def sp_loader(wksht,
     # first data row to read. Follows key_wrd row.
     start_row = 1 + key_row
     # last data row to read. 
-    stop_row = -1 + hp.find_key_row(wksht, 'A', start_row)
+    stop_row = start_row - 1 + num_rows_to_read
     
     # fetch the data from the block
     data = data_block_reader(wksht, start_row, stop_row,
                              first_col, last_col, skip_col)
-    # iterate over rows to convert all dates to datetime.date
+    # iterate over rows to convert all str dates to datetime.date
     # row[0]: datetime or str, '%m/%d/%Y' is first 'word' in str
     for row in data:
         row[0] = hp.dt_str_to_date(row[0])
@@ -186,7 +187,8 @@ def margin_loader(wksht, row_key, first_col, stop_col_key,
     return df
 
 
-def industry_loader(wksht, row_key, 
+def industry_loader(wksht, 
+                    row_key, 
                     first_col, stop_col_key,
                     start_row_data_offset, stop_row_data_offset,
                     num_inds, yr_qtr_name):

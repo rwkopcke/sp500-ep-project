@@ -47,7 +47,6 @@ ARCHIVE_DIR = \
 OUTPUT_DIR = BASE_DIR / "output_dir"
 OUTPUT_HIST_FILE = 'sp500_pe_df_actuals.parquet'
 OUTPUT_HIST_ADDR = OUTPUT_DIR / OUTPUT_HIST_FILE
-OUTPUT_HIST_FILE = OUTPUT_DIR / 'sp500_pe_df_actuals.parquet'
 OUTPUT_PROJ_DIR = OUTPUT_DIR / 'estimates'
 
 BACKUP_DIR = BASE_DIR / 'backup_dir'

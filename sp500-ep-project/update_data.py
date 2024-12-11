@@ -53,6 +53,8 @@ SHT_IND_NAME = 'SECTOR EPS'
 
 # all search (row or col) "keys" should be None or lists
 
+NUM_SP_ROWS_TO_READ = 6
+
 SHT_EST_DATE_PARAMS = {
     'date_keys' : ['Date', 'Data as of the close of:'],
     'value_col_1' : 'D',
@@ -146,7 +148,7 @@ def update_data_files():
         with sp.BACKUP_RECORD_DICT_ADDR.open('w') as f:
             json.dump(record_dict, f)
         print('============================================')
-        print(f'Wrote record_dict to: \n{sp.BACKUP_RECORD_DICT_ADDR}')
+        print(f'Wrote backup record_dict to: \n{sp.BACKUP_RECORD_DICT_ADDR}')
         print('============================================\n')
         
     else:
@@ -186,8 +188,8 @@ def update_data_files():
         
 # there is new data, add new files to historical record
     record_dict['prev_files'] \
-        .extend(list(new_files_set)) \
-        .sort(reverse= True)
+        .extend(list(new_files_set))
+    record_dict['prev_files'].sort(reverse= True)
 
 # find the latest new file for each quarter (agg(sort).last)
     data_df = pl.DataFrame(list(new_files_set), 
@@ -256,6 +258,12 @@ def update_data_files():
                 f'{file_list[0]} {file_list[1]
                                     .replace(' ', '-')
                                     .replace('.xlsx', '.parquet')}'
+                                    
+                                    
+            print(proj_file)
+            print(record_dict['output_proj_files'])                  
+                                    
+                                    
             record_dict['output_proj_files'].remove(proj_file)
             # using Path() object
             address_proj_file = sp.OUTPUT_PROJ_DIR / proj_file
@@ -291,8 +299,8 @@ def update_data_files():
             
     # add dates of projections and year_qtr to record_dict
     record_dict['prev_used_files'] \
-        .extend(files_to_read_list) \
-        .sort(reverse= True)
+        .extend(files_to_read_list)
+    record_dict['prev_used_files'].sort(reverse= True)
         
     record_dict['proj_yr_qtrs']= \
         hp.date_to_year_qtr(
@@ -318,7 +326,7 @@ def update_data_files():
     real_rt_df = rd.fred_reader(active_sheet,
                                 **SHT_FRED_PARAMS)
     
-## HISTORICAL DATA from existing .parquet file
+## DATA from new excel file
     latest_file_addr = sp.INPUT_DIR / record_dict["latest_used_file"]
     
     # load s&p workbook, contains the most recent update to hist data
@@ -328,9 +336,19 @@ def update_data_files():
     
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    # actual df from parquet file
     # fetch date and new data from new excel file
     # concat new with old
+    '''
+    # remove most recent 4 rows (qtrs) of data
+    print(history_df.columns)
+    print('\n')
+    yr_qtr_to_remove = pl.Series(
+        history_df.select(pl.col(YR_QTR_NAME)) \
+                  .head(4)
+    ).to_list()
+    print(yr_qtr_to_remove)
+    sys.exit()
+    '''
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -349,7 +367,9 @@ def update_data_files():
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
     # load historical data, if updates are available
+    # load only the most recent NUM_SP_ROWS_TO_READ qtrs
     df = rd.sp_loader(active_sheet,
+                      NUM_SP_ROWS_TO_READ,
                       **SHT_HIST_PARAMS)
     
     # if any date is None, halt
@@ -376,6 +396,10 @@ def update_data_files():
                   .with_columns(pl.col('date')
                         .map_batches(hp.date_to_year_qtr)
                         .alias(YR_QTR_NAME))
+                  
+    hp.my_df_print(actual_df)
+    print(actual_df.columns)
+    sys.exit()
                   
     # merge real_rates with p and e history
     actual_df = actual_df.join( 
@@ -406,6 +430,7 @@ def update_data_files():
     '''
 ## INDUSTRIAL DATA
     ind_df = rd.industry_loader(active_sheet,
+                                ?NUM_SP_ROWS_TO_READ?
                                 **SHT_BC_IND_PARAMS)
     
     actual_df = actual_df.join(
@@ -424,8 +449,9 @@ def update_data_files():
 ## QUARTERLY DATA
     active_sheet = active_workbook[SHT_QTR_NAME]
 
-    qtrly_df = rd.sp_loader(active_sheet, 
-                              **SHT_QTR_PARAMS)\
+    qtrly_df = rd.sp_loader(active_sheet,
+                            NUM_SP_ROWS_TO_READ, 
+                            **SHT_QTR_PARAMS)\
                  .with_columns(pl.col('date')
                             .map_batches(hp.date_to_year_qtr)
                             .alias(YR_QTR_NAME))
@@ -438,6 +464,9 @@ def update_data_files():
     
     del qtrly_df
     gc.collect()
+    
+## HISTORY data file from previous update_data.py
+    histry_df = pl.read_parquet(sp.OUTPUT_HIST_ADDR)
 
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ## +++++ update projection files +++++++++++++++++++++++++++++++++++++++++++
